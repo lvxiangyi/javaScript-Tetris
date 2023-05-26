@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="./lodash.min.js"></script>
+    <style>
+        .container {
+            width: 200px;
+            height: 360px;
+            background-color: aqua;
+            position: relative;
+
+        }
+
+        .activity_model {
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            background-color: blueviolet;
+            border: .3px solid #676767;
+            position: absolute;
+        }
+
+        .fixed_model {
+            width: 20px;
+            height: 20px;
+            box-sizing: border-box;
+            background-color: gray;
+            border: .3px solid yellowgreen;
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body onload="init()">
+    <!-- 创建背景容器 -->
+    <div id="container" class="container">
+        <!-- 创建块元素 -->
+
+    </div>
+    </div>
+</body>
+<script>
+    //常量
+    //buchang 
+    var STEP = 20;
+    //divide the container
+    // 18行 ， 10列
+    var ROW_COUNT = 18;
+    var COL_COUNT = 10;
+    //fixed kuai
+    var fixedBlocks = {};
+    //timer
+    var mInterval = null;
+    var MODELS = [
+        // 第一个样式(L)
+        {
+            0: {
+                row: 2,
+                col: 0
+            },
+            1: {
+                row: 2,
+                col: 1
+            },
+            2: {
+                row: 2,
+                col: 2
+            },
+            3: {
+                row: 1,
+                col: 2
+            },
+        },
+        // 第二个样式(凸)
+        {
+            0: {
+                row: 1,
+                col: 1
+            },
+            1: {
+                row: 0,
+                col: 0
+            },
+            2: {
+                row: 1,
+                col: 0
+            },
+            3: {
+                row: 2,
+                col: 0
+            },
+        },
+        //  第三个样式(田)
+        {
+            0: {
+                row: 1,
+                col: 1
+            },
+            1: {
+                row: 2,
+                col: 1
+            },
+            2: {
+                row: 1,
+                col: 2
+            },
+            3: {
+                row: 2,
+                col: 2
+            },
+        },
+        // 第四个样式(一)
+        {
+            0: {
+                row: 0,
+                col: 0
+            },
+            1: {
+                row: 0,
+                col: 1
+            },
+            2: {
+                row: 0,
+                col: 2
+            },
+            3: {
+                row: 0,
+                col: 3
+            },
+        },
+        // 第五个样式(Z)
+        {
+            0: {
+                row: 1,
+                col: 1
+            },
+            1: {
+                row: 1,
+                col: 2
+            },
+            2: {
+                row: 2,
+                col: 2
+            },
+            3: {
+                row: 2,
+                col: 3
+            }
+        }
+    ]
+    var currentModel = {}
+    //标记十六宫格的位置 
+    var currentX = 0, currentY = 0;
+
+
+
+    //监听入口方法
+    function init() {
+        createModel();
+        
+        onKeyDown();
+    }
+    // 生成对应模型
+    function createModel() {
+        currentModel = MODELS[_.random(0, MODELS.length - 1)]
+        currentX = 0, currentY = 0;
+        //generate 
+        for (var key in currentModel) {
+            var divEle = document.createElement("div");
+            divEle.className = "activity_model";
+            document.getElementById("container").appendChild(divEle);
+
+        }
+        locationBlocks();
+        autoDown();
+
+    }
+
+
+
+    //根据数据源定位元素的位置
+
+    function locationBlocks() {
+        checkBound();
+        //1.拿到所有块元素
+        var eles = document.getElementsByClassName("activity_model");
+        for (var i = 0; i < eles.length; i++) {
+            var activityModelEle = eles[i];
+
+
+            //2.找到行和列
+            var blockModel = currentModel[i];
+            //3.指定位置
+            activityModelEle.style.top = (blockModel.row + currentY) * STEP + "px";
+            activityModelEle.style.left = (blockModel.col + currentX) * STEP + "px";
+
+
+
+        }
+    }
+    //监听键盘事件
+    function onKeyDown() {
+        document.onkeydown = function (event) {
+            console.log(event.keyCode);
+
+
+            switch (event.keyCode) {
+                case 38:
+                    console.log("上");
+                    rotate();
+                    break;
+                case 39:
+                    console.log("右");
+                    move(1, 0);
+                    break;
+                case 40:
+                    console.log("下");
+                    move(0, 1);
+                    break;
+                case 37:
+                    console.log("左");
+                    move(-1, 0);
+                    break;
+
+
+
+
+
+
+            }
+        }
+    }
+    function move(x, y) {
+
+        // var activityModelEle = document.getElementsByClassName("activity_model")[0];
+        // activityModelEle.style.top = parseInt(activityModelEle.style.top || 0) + y * STEP + "px";
+        // activityModelEle.style.left = parseInt(activityModelEle.style.left || 0) + x * STEP + "px";
+
+        //16宫格移动
+        if (isMeet(currentX + x, currentY + y, currentModel)) {
+            if (y !== 0) {
+
+                fixedBottom();
+            }
+            return;
+        };
+        currentX += x;
+        currentY += y;
+        //根据16宫格重新定位
+        locationBlocks();
+        
+
+    }
+    function rotate() {
+        var cloneCurrentModel = _.cloneDeep(currentModel);
+        for (var key in cloneCurrentModel) {
+            var blockModel = cloneCurrentModel[key];
+            tmp = blockModel.row;
+            blockModel.row = blockModel.col;
+            blockModel.col = 3 - tmp;
+
+        }
+        if (isMeet(currentX, currentY, cloneCurrentModel)) {
+            return;
+        }
+        currentModel = cloneCurrentModel;
+        locationBlocks();
+
+    }
+    function checkBound() {
+        //定义边界
+        var leftBound = 0,
+            rightBound = COL_COUNT,
+            bottomBound = ROW_COUNT;
+        //定位之前先检测
+        for (var key in currentModel) {
+            var blockModel = currentModel[key];
+            //左侧越界
+            if (blockModel.col + currentX < leftBound) {
+                currentX++;
+            }
+            if (blockModel.col + currentX >= rightBound) {
+                currentX--;
+            }
+            if (blockModel.row + currentY >= bottomBound) {
+                currentY--;
+                fixedBottom();
+            }
+        }
+
+
+    }
+    function fixedBottom() {
+        var eles = document.getElementsByClassName("activity_model");
+        for (var i = eles.length - 1; i >= 0; i--) {
+            var activityModelEle = eles[i];
+            activityModelEle.className = "fixed_model";
+            var blockModel = currentModel[i];
+            fixedBlocks[(currentY + blockModel.row) + "_" + (currentX + blockModel.col)] = activityModelEle;
+
+        }
+        isRemoveLine();
+        createModel();
+    }
+
+    // function arriBottom(){
+    //     for (var key in currentModel) {
+    //         var blockModel = currentModel[key];
+
+
+    //         if (blockModel.row + currentY >= ROW_COUNT-1) {
+    //             return true;
+    //         }
+    //     }
+    //     //1.检测是否到达底端，仅需检查是否有一个块到达底端
+
+    //     //2.到达后则无法移动，键盘监听事件之前
+
+    //     //3.生成一个新的模型
+    // }任务驱动会快很多，进步的话，俄罗斯方块加blender，别的小游戏和webgl，熬夜写作业，编曲照着教程操作喽,电吉他即兴，语言先放一边，主力
+    //此处的x,y指九宫格将要移动的位置 
+    function isMeet(x, y, model) {
+        for (var key in model) {
+            var blcokModel = model[key];
+            if (fixedBlocks[(y + blcokModel.row) + "_" + (x + blcokModel.col)]) {
+                return true;
+            }
+        }
+        return false;
+
+
+        //1.上下接触和左右接触
+        //2.标记已经被固定的元素
+    }
+
+    function isRemoveLine() {
+        //1.,遍历每一行和每一列
+        //2.判断每一列是否都已经存在元素
+        for (var i = 0; i < ROW_COUNT; i++) {
+            var flag = true;
+            for (var j = 0; j < COL_COUNT; j++)
+            //试验字符串和直接有何区别
+            {
+                if (!fixedBlocks[i + "_" + j])
+                    flag = false;
+            }
+            if (flag) {
+                removeLine(i);
+            }
+        }
+    }
+
+    function removeLine(line) {
+        //1.清除这一行中fixedBlocks中的元素
+        //2.清除数据源
+        for (var i = 0; i < COL_COUNT; i++) {
+            // 1、从容器中删除元素
+            document.getElementById("container").removeChild(fixedBlocks[line + "_" + i]);
+            // 2、从数据源中删除元素
+            fixedBlocks[line + "_" + i] = null;
+        }
+        downLine(line);
+
+    }
+
+    function downLine(line) {
+
+        //1.拿到当前清除的行
+        //2.在i行以上的元素全部下落一格
+        for (var i = 0; i < line; i++) {
+            for (var j = 0; j < COL_COUNT; j++) {
+                // 如果当前列没有数据进入下一次循环
+                if (!fixedBlocks[i + "_" + j]) continue;
+                // 如果当前行的当前列存在块元素的话
+                // 1、平移数据，把当前行的数据给下一行
+                fixedBlocks[(i + 1) + "_" + j] = fixedBlocks[i + "_" + j];
+                // 2、平移元素，让当前行的元素到下一行
+                fixedBlocks[(i + 1) + "_" + j].style.top = (i + 1) * STEP + "px";
+                // 3、清理掉平移之前的数据
+                fixedBlocks[i + "_" + j] = null;
+
+
+            }
+        }
+
+    }
+    function autoDown() {
+        if (mInterval) {
+            clearInterval(mInterval);
+        }
+        mInterval = setInterval(function () {
+            move(0, 1);
+        }, 600);
+    
+    }
+
+    function isGameOver(){
+        // gongzuo he xuexi jiu ying gai fenkai ,gaixue de shihou  xue  gaiwan d eshihou jiuwan 
+    }
+
+
+</script>
+
+</html>
